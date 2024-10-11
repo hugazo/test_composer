@@ -6,10 +6,13 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - conf:/etc/nginx/conf.d
+      # The vhost volume is only required if you
+      # plan to obtain standalone certificates
       - vhost:/etc/nginx/vhost.d
+      - conf:/etc/nginx/conf.d
       - html:/usr/share/nginx/html
       - certs:/etc/nginx/certs:ro
+    network_mode: bridge
 
   docker-gen:
     image: nginxproxy/docker-gen
@@ -22,6 +25,7 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     labels:
       - "com.github.nginx-proxy.docker-gen"
+    network_mode: bridge
 
   acme-companion:
     image: nginxproxy/acme-companion
@@ -34,16 +38,15 @@ services:
       - certs:/etc/nginx/certs:rw
       - acme:/etc/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    network_mode: bridge
 
-  # Apps
-  # Added excalidraw for testing
-  excalidraw:
+  draw:
     image: excalidraw/excalidraw:latest
     restart: unless-stopped
     healthcheck:
       disable: true
+    network_mode: bridge
     environment:
-      - SUBDOMAIN=${EXCALIDRAW_SUBDOMAIN}
       - VIRTUAL_HOST=${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}
       - VIRTUAL_PORT=80
       - LETSENCRYPT_HOST=${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}
@@ -52,4 +55,9 @@ services:
       - REACT_APP_BACKEND_V2_GET_URL=https://${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}/api/v2/
       - REACT_APP_BACKEND_V2_POST_URL=https://${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}/api/v2/post
 
-  # TODO: Add mattermost
+volumes:
+  conf:
+  vhost:
+  html:
+  certs:
+  acme:

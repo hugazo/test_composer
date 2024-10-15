@@ -6,9 +6,13 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      # The vhost volume is only required if you
+      # plan to obtain standalone certificates
       - vhost:/etc/nginx/vhost.d
+      - conf:/etc/nginx/conf.d
       - html:/usr/share/nginx/html
       - certs:/etc/nginx/certs:ro
+    network_mode: bridge
 
   docker-gen:
     image: nginxproxy/docker-gen
@@ -21,6 +25,7 @@ services:
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro
     labels:
       - "com.github.nginx-proxy.docker-gen"
+    network_mode: bridge
 
   acme-companion:
     image: nginxproxy/acme-companion
@@ -33,16 +38,15 @@ services:
       - certs:/etc/nginx/certs:rw
       - acme:/etc/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    network_mode: bridge
 
-  # Apps
-  # Added excalidraw for testing
-  excalidraw:
+  draw:
     image: excalidraw/excalidraw:latest
     restart: unless-stopped
     healthcheck:
       disable: true
+    network_mode: bridge
     environment:
-      - SUBDOMAIN=${EXCALIDRAW_SUBDOMAIN}
       - VIRTUAL_HOST=${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}
       - VIRTUAL_PORT=80
       - LETSENCRYPT_HOST=${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}
@@ -72,3 +76,15 @@ services:
       - VIRTUAL_PORT=8065
       - MM_SQLSETTINGS_DRIVERNAME=postgres
       - MM_SQLSETTINGS_DATASOURCE=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
+volumes:
+  conf:
+  vhost:
+  html:
+  certs:
+  acme:
+  mattermost-config:
+  mattermost-data:
+  mattermost-logs:
+  mattermost-plugins:
+  mattermost-client-plugins:

@@ -6,7 +6,6 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - conf:/etc/nginx/conf.d
       - vhost:/etc/nginx/vhost.d
       - html:/usr/share/nginx/html
       - certs:/etc/nginx/certs:ro
@@ -18,8 +17,8 @@ services:
     volumes_from:
       - nginx-proxy
     volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:rw
       - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro
-      - /var/run/docker.sock:/tmp/docker.sock:ro
     labels:
       - "com.github.nginx-proxy.docker-gen"
 
@@ -52,4 +51,24 @@ services:
       - REACT_APP_BACKEND_V2_GET_URL=https://${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}/api/v2/
       - REACT_APP_BACKEND_V2_POST_URL=https://${EXCALIDRAW_SUBDOMAIN}.${BASE_DOMAIN}/api/v2/post
 
-  # TODO: Add mattermost
+  # mattermost
+  mattermost:
+    image: mattermost/mattermost-team-edition:latest
+    restart: unless-stopped
+    TZ: "America/Santiago"
+    volumes:
+      - .mattermost-config:/mattermost/config:rw
+      - .mattermost-data:/mattermost/data:rw
+      - .mattermost-logs:/mattermost/logs:rw
+      - .mattermost-plugins:/mattermost/plugins:rw
+      - .mattermost-client-plugins:/mattermost/client/plugins:rw
+      - /etc/localtime:/etc/localtime:ro
+
+    environment:
+      - APP_PORT=8065
+      - SUBDOMAIN=${MATTERMOST_SUBDOMAIN}
+      - LETSENCRYPT_HOST=${MATTERMOST_SUBDOMAIN}.${BASE_DOMAIN}
+      - VIRTUAL_HOST=${MATTERMOST_SUBDOMAIN}.${BASE_DOMAIN}
+      - VIRTUAL_PORT=8065
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
